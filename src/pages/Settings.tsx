@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
-import { User, Shield, Zap, BellRing, ExternalLink, CheckCircle, XCircle, Save } from 'lucide-react';
+import { useAppContext } from '../context/useAppContext';
+import { User, Zap, BellRing, ExternalLink, Save } from 'lucide-react';
 
 const Settings: React.FC = () => {
-  const { platformAccounts } = useAppContext();
+  const { platformAccounts, connectPlatformAccount, disconnectPlatformAccount } = useAppContext();
   const [activeTab, setActiveTab] = useState<'account' | 'platforms' | 'ai' | 'notifications'>('account');
   
   // Mock user settings
@@ -11,6 +11,7 @@ const Settings: React.FC = () => {
     name: 'John Doe',
     email: 'john.doe@example.com',
     notificationsEnabled: true,
+    notificationsPublishing: true, // Added for "Publishing Status"
     emailDigest: 'weekly',
     defaultPublishPlatforms: ['Medium', 'WordPress'],
     aiSettings: {
@@ -25,11 +26,16 @@ const Settings: React.FC = () => {
   
   const handleSaveSettings = () => {
     setIsSaving(true);
-    
+    console.log("Saving user settings:", userSettings); // Log current settings
     // Simulate API call
     setTimeout(() => {
       setIsSaving(false);
     }, 1500);
+  };
+
+  const handleRefreshToken = (platformId: string) => {
+    console.log(`Refreshing token for platform: ${platformId}`);
+    // Placeholder for actual token refresh logic
   };
   
   return (
@@ -201,15 +207,24 @@ const Settings: React.FC = () => {
                     <div className="flex items-center">
                       {account.isConnected ? (
                         <div className="flex space-x-3">
-                          <button className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                          <button 
+                            onClick={() => handleRefreshToken(account.id)}
+                            className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
                             Refresh Token
                           </button>
-                          <button className="px-3 py-1 border border-error-300 text-error-700 rounded-md text-xs font-medium hover:bg-error-50 transition-colors">
+                          <button 
+                            onClick={() => disconnectPlatformAccount(account.id)}
+                            className="px-3 py-1 border border-error-300 text-error-700 rounded-md text-xs font-medium hover:bg-error-50 transition-colors"
+                          >
                             Disconnect
                           </button>
                         </div>
                       ) : (
-                        <button className="px-3 py-1 bg-primary-600 text-white rounded-md text-xs font-medium hover:bg-primary-700 transition-colors">
+                        <button 
+                          onClick={() => connectPlatformAccount(account.id)}
+                          className="px-3 py-1 bg-primary-600 text-white rounded-md text-xs font-medium hover:bg-primary-700 transition-colors"
+                        >
                           Connect
                         </button>
                       )}
@@ -425,7 +440,13 @@ const Settings: React.FC = () => {
                       <p className="text-xs text-gray-500">Notify when content is published successfully or fails</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked className="sr-only peer" disabled={!userSettings.notificationsEnabled} />
+                      <input 
+                        type="checkbox" 
+                        checked={userSettings.notificationsPublishing} 
+                        onChange={(e) => setUserSettings({...userSettings, notificationsPublishing: e.target.checked})}
+                        className="sr-only peer" 
+                        disabled={!userSettings.notificationsEnabled} 
+                      />
                       <div className={`w-11 h-6 ${userSettings.notificationsEnabled ? 'bg-gray-200 peer-focus:ring-primary-300 peer-checked:bg-primary-600' : 'bg-gray-300'} peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
                     </label>
                   </div>
@@ -436,7 +457,7 @@ const Settings: React.FC = () => {
                       <p className="text-xs text-gray-500">Get updates when your content reaches new milestones</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked className="sr-only peer" disabled={!userSettings.notificationsEnabled} />
+                      <input type="checkbox" checked={false} onChange={() => {/* Placeholder - Can be bound to another userSettings property */}} className="sr-only peer" disabled={!userSettings.notificationsEnabled} />
                       <div className={`w-11 h-6 ${userSettings.notificationsEnabled ? 'bg-gray-200 peer-focus:ring-primary-300 peer-checked:bg-primary-600' : 'bg-gray-300'} peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
                     </label>
                   </div>
@@ -447,7 +468,7 @@ const Settings: React.FC = () => {
                       <p className="text-xs text-gray-500">Notify about connection issues or token expirations</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked className="sr-only peer" disabled={!userSettings.notificationsEnabled} />
+                      <input type="checkbox" checked={false} onChange={() => {/* Placeholder - Can be bound to another userSettings property */}} className="sr-only peer" disabled={!userSettings.notificationsEnabled} />
                       <div className={`w-11 h-6 ${userSettings.notificationsEnabled ? 'bg-gray-200 peer-focus:ring-primary-300 peer-checked:bg-primary-600' : 'bg-gray-300'} peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
                     </label>
                   </div>

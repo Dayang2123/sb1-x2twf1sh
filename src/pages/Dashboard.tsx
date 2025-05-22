@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { PenSquare, Clock, Send, TrendingUp, BarChart2, ArrowRight } from 'lucide-react';
 import ContentCard from '../components/Content/ContentCard';
 import AnalyticsCard from '../components/Dashboard/AnalyticsCard';

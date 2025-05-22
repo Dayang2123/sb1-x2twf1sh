@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { Link } from 'react-router-dom';
-import { PenSquare, Search, Clock, Calendar, Trash2, MoreHorizontal } from 'lucide-react';
-import ContentCard from '../components/Content/ContentCard';
+import { PenSquare, Search, Clock, Trash2, MoreHorizontal } from 'lucide-react';
+
+type SortOrderValue = 'newest' | 'oldest' | 'az' | 'za';
 
 const Drafts: React.FC = () => {
   const { contents, deleteContent } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'az' | 'za'>('newest');
+  const [sortOrder, setSortOrder] = useState<SortOrderValue>('newest');
   
   const drafts = contents.filter(content => content.status === 'draft');
   
@@ -73,7 +74,7 @@ const Drafts: React.FC = () => {
             <select
               id="sortOrder"
               value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as any)}
+              onChange={(e) => setSortOrder(e.target.value as SortOrderValue)}
               className="py-2 px-3 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="newest">Newest first</option>
@@ -101,7 +102,7 @@ const Drafts: React.FC = () => {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        // Toggle dropdown menu would go here
+                        console.log(`More actions for draft ID: ${draft.id} - dropdown would open here.`);
                       }}
                       className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
                     >
