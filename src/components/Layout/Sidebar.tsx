@@ -9,7 +9,7 @@ import {
   Menu, 
   ChevronLeft 
 } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '../../context/useAppContext';
 
 const Sidebar: React.FC = () => {
   const { isSidebarOpen, toggleSidebar } = useAppContext();

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
-import { createNewContent, generateId } from '../data/mockData';
-import { Save, Image, Sparkles, Send, X, Plus, Settings } from 'lucide-react';
+import { useAppContext } from '../context/useAppContext';
+import { createNewContent } from '../data/mockData';
+import { Save, Image, Sparkles, Send, Plus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AIPromptModal from '../components/Editor/AIPromptModal';
@@ -46,51 +46,71 @@ const Editor: React.FC = () => {
         clearTimeout(autoSaveTimer);
       }
     };
-  }, [id, contents, setCurrentContent, navigate]);
+  }, [id, contents, setCurrentContent, navigate, autoSaveTimer]);
 
-  // Auto-save functionality
-  useEffect(() => {
-    if (autoSaveTimer) {
-      clearTimeout(autoSaveTimer);
-    }
-
-    if (currentContent && (title !== currentContent.title || content !== currentContent.content)) {
-      const timer = setTimeout(() => {
-        handleSave(true);
-      }, 5000);
-      
-      setAutoSaveTimer(timer);
-    }
-
-    return () => {
-      if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer);
-      }
-    };
-  }, [title, content]);
-
-  const handleSave = (isAutoSave = false) => {
+  const handleSave = useCallback((isAutoSave = false) => {
     if (!currentContent) return;
+
+    // If currentContent is null and we have an ID, it implies we might be creating a new one.
+    // However, the current logic in the first useEffect already sets currentContent or navigates.
+    // This check is more for future-proofing if content creation flow changes.
+    if (!currentContent && id) {
+        // Potentially navigate or handle error, though current setup makes this unlikely.
+        // For now, if currentContent is null, we can't save.
+        // Consider if a new content object should be created here if it's truly a new unsaved item.
+        // navigate(`/editor`); // Or some error handling
+        return;
+    }
     
     if (!isAutoSave) {
       setIsSaving(true);
     }
 
-    const updatedContent = {
-      ...currentContent,
+    const updatedContentData = { // Renamed to avoid conflict with 'content' state variable
+      ...(currentContent || createNewContent()), // Use currentContent or create if null
       title,
-      content,
+      content, // This is the 'content' state variable
       updatedAt: new Date().toISOString()
     };
-
-    saveContent(updatedContent);
+    
+    // If it was a new content, set it as current so subsequent saves work on this new item
+    if (!currentContent && !id) { // Check if it was genuinely new (no id from URL)
+        const newContentWithId = { ...updatedContentData, id: createNewContent().id }; // ensure it has an ID
+        setCurrentContent(newContentWithId);
+        saveContent(newContentWithId);
+        // Potentially navigate to /editor/newContentWithId.id if desired
+        // navigate(`/editor/${newContentWithId.id}`, { replace: true });
+    } else {
+        saveContent(updatedContentData);
+    }
     
     if (!isAutoSave) {
       setTimeout(() => {
         setIsSaving(false);
       }, 1000);
     }
-  };
+  }, [currentContent, title, content, saveContent, setCurrentContent, id]);
+
+  // Auto-save functionality
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (autoSaveTimer) { // Clear previous timer if it exists from setAutoSaveTimer call
+        clearTimeout(autoSaveTimer);
+    }
+
+    if (currentContent && (title !== currentContent.title || content !== currentContent.content)) {
+      timer = setTimeout(() => {
+        handleSave(true);
+      }, 5000);
+      setAutoSaveTimer(timer); // Store the new timer
+    }
+
+    return () => {
+      if (timer) { // Use the locally scoped timer for cleanup
+        clearTimeout(timer);
+      }
+    };
+  }, [currentContent, title, content, handleSave, autoSaveTimer, setAutoSaveTimer]);
 
   const addImageToContent = (imageUrl: string, alt: string) => {
     const imageMarkdown = `\n\n![${alt}](${imageUrl})\n\n`;

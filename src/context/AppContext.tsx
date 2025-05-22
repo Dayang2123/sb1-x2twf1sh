@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState } from 'react';
 import { Content, PlatformAccount, mockData } from '../data/mockData';
 
-interface AppContextType {
+export interface AppContextType { // Exporting AppContextType
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   contents: Content[];
@@ -13,17 +13,11 @@ interface AppContextType {
   saveContent: (content: Content) => void;
   deleteContent: (id: string) => void;
   publishContent: (contentId: string, platforms: string[]) => void;
+  connectPlatformAccount: (platformId: string) => void;
+  disconnectPlatformAccount: (platformId: string) => void;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-export const useAppContext = (): AppContextType => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppContext must be used within an AppProvider');
-  }
-  return context;
-};
+export const AppContext = createContext<AppContextType | undefined>(undefined); // Exporting AppContext
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -82,6 +76,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  const connectPlatformAccount = (platformId: string) => {
+    console.log(`Attempting to connect platform: ${platformId}`);
+    setPlatformAccounts(prevAccounts =>
+      prevAccounts.map(account =>
+        account.id === platformId
+          ? { ...account, isConnected: true, username: 'ConnectedUser' }
+          : account
+      )
+    );
+  };
+
+  const disconnectPlatformAccount = (platformId: string) => {
+    console.log(`Attempting to disconnect platform: ${platformId}`);
+    setPlatformAccounts(prevAccounts =>
+      prevAccounts.map(account =>
+        account.id === platformId
+          ? { ...account, isConnected: false, username: 'User' }
+          : account
+      )
+    );
+  };
+
   const value = {
     isSidebarOpen,
     toggleSidebar,
@@ -94,6 +110,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveContent,
     deleteContent,
     publishContent,
+    connectPlatformAccount,
+    disconnectPlatformAccount,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

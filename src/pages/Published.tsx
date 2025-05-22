@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { Link } from 'react-router-dom';
 import { Search, Filter, ExternalLink, BarChart2, Copy, Calendar } from 'lucide-react';
-import ContentCard from '../components/Content/ContentCard';
 
 const Published: React.FC = () => {
   const { publishedContents } = useAppContext();
@@ -113,11 +112,17 @@ const Published: React.FC = () => {
                         <Copy className="w-4 h-4 mr-1" />
                         Clone
                       </Link>
-                      <button className="inline-flex items-center hover:text-primary-600 transition-colors">
+                      <button 
+                        onClick={() => console.log(`View Live action for content ID: ${content.id}`)}
+                        className="inline-flex items-center hover:text-primary-600 transition-colors"
+                      >
                         <ExternalLink className="w-4 h-4 mr-1" />
                         View Live
                       </button>
-                      <button className="inline-flex items-center hover:text-primary-600 transition-colors">
+                      <button 
+                        onClick={() => console.log(`Analytics action for content ID: ${content.id}`)}
+                        className="inline-flex items-center hover:text-primary-600 transition-colors"
+                      >
                         <BarChart2 className="w-4 h-4 mr-1" />
                         Analytics
                       </button>

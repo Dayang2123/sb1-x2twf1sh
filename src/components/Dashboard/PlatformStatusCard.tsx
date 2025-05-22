@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle, ExternalLink } from 'lucide-react';
 import { PlatformAccount } from '../../data/mockData';
 
 interface PlatformStatusCardProps {
