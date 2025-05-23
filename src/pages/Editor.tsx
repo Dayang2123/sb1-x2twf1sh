@@ -50,38 +50,39 @@ const Editor: React.FC = () => {
 
   const handleSave = useCallback((isAutoSave = false) => {
     if (!currentContent) return;
-
-    // If currentContent is null and we have an ID, it implies we might be creating a new one.
-    // However, the current logic in the first useEffect already sets currentContent or navigates.
-    // This check is more for future-proofing if content creation flow changes.
-    if (!currentContent && id) {
-        // Potentially navigate or handle error, though current setup makes this unlikely.
-        // For now, if currentContent is null, we can't save.
-        // Consider if a new content object should be created here if it's truly a new unsaved item.
-        // navigate(`/editor`); // Or some error handling
-        return;
-    }
     
+    // Determine if this is the first save of a new document (URL has no ID yet)
+    const isNewContentBeingSaved = !id;
+
     if (!isAutoSave) {
       setIsSaving(true);
     }
 
-    const updatedContentData = { // Renamed to avoid conflict with 'content' state variable
-      ...(currentContent || createNewContent()), // Use currentContent or create if null
+    const updatedContentData = { 
+      ...(currentContent || createNewContent()), 
       title,
-      content, // This is the 'content' state variable
+      content, 
       updatedAt: new Date().toISOString()
     };
     
-    // If it was a new content, set it as current so subsequent saves work on this new item
-    if (!currentContent && !id) { // Check if it was genuinely new (no id from URL)
-        const newContentWithId = { ...updatedContentData, id: createNewContent().id }; // ensure it has an ID
-        setCurrentContent(newContentWithId);
-        saveContent(newContentWithId);
-        // Potentially navigate to /editor/newContentWithId.id if desired
-        // navigate(`/editor/${newContentWithId.id}`, { replace: true });
-    } else {
-        saveContent(updatedContentData);
+    // Ensure currentContent is updated locally if it was a brand new item,
+    // so that updatedContentData has the correct ID for navigation and subsequent saves.
+    // This also ensures that if createNewContent() was used above, the new ID is captured.
+    if (!currentContent.id || isNewContentBeingSaved) {
+      // If currentContent was from createNewContent(), its id is already set.
+      // If currentContent somehow lost an id, this would also apply a new one via createNewContent().
+      // The main purpose here is to ensure updatedContentData has a definitive ID.
+      if (!updatedContentData.id) { // Should not happen if currentContent is from createNewContent
+        updatedContentData.id = createNewContent().id;
+      }
+      setCurrentContent(updatedContentData); // Update currentContent in state with the ID
+    }
+    
+    saveContent(updatedContentData); // Save to context and localStorage
+
+    // After saving, if it was a new content, navigate to its ID-specific URL
+    if (isNewContentBeingSaved && updatedContentData.id) {
+      navigate(`/editor/${updatedContentData.id}`, { replace: true });
     }
     
     if (!isAutoSave) {
@@ -89,7 +90,7 @@ const Editor: React.FC = () => {
         setIsSaving(false);
       }, 1000);
     }
-  }, [currentContent, title, content, saveContent, setCurrentContent, id]);
+  }, [currentContent, title, content, saveContent, setCurrentContent, id, navigate]);
 
   // Auto-save functionality
   useEffect(() => {
