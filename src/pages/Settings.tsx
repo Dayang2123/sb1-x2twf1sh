@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Added useEffect and useRef
 import { useAppContext } from '../context/useAppContext';
 import { User, Zap, BellRing, ExternalLink, Save } from 'lucide-react';
 
+const USER_SETTINGS_KEY = 'userAppSettings'; // Defined localStorage key
+
 const Settings: React.FC = () => {
-  const { platformAccounts, connectPlatformAccount, disconnectPlatformAccount } = useAppContext();
+  const { platformAccounts, connectPlatformAccount, disconnectPlatformAccount, addPlatformAccount } = useAppContext(); // Added addPlatformAccount
   const [activeTab, setActiveTab] = useState<'account' | 'platforms' | 'ai' | 'notifications'>('account');
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
   
-  // Mock user settings
-  const [userSettings, setUserSettings] = useState({
+  // User settings with new notification options and profile picture URL
+  const defaultSettings = { 
     name: 'John Doe',
     email: 'john.doe@example.com',
+    profilePictureUrl: '', // Added for profile picture
     notificationsEnabled: true,
-    notificationsPublishing: true, // Added for "Publishing Status"
+    notificationsPublishing: true,
+    notificationsContentPerformance: false,
+    notificationsPlatformConnections: false,
     emailDigest: 'weekly',
     defaultPublishPlatforms: ['Medium', 'WordPress'],
     aiSettings: {
@@ -20,22 +26,78 @@ const Settings: React.FC = () => {
       temperature: 0.7,
       savePrompts: true
     }
-  });
+  };
+  const [userSettings, setUserSettings] = useState(defaultSettings);
+  // The duplicated userSettings initialization was removed as it's incorrect.
+  // The defaultSettings will be used for initial state, 
+  // and useEffect will load from localStorage if available.
   
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    try {
+      const storedSettings = localStorage.getItem(USER_SETTINGS_KEY);
+      if (storedSettings) {
+        const parsedSettings = JSON.parse(storedSettings);
+        // Merge with default settings to ensure all keys are present
+        setUserSettings(prevSettings => ({ ...prevSettings, ...parsedSettings }));
+      }
+    } catch (error) {
+      console.error("Failed to load user settings from localStorage", error);
+    }
+  }, []); // Empty dependency array means this runs once on mount
+
   const [isSaving, setIsSaving] = useState(false);
   
   const handleSaveSettings = () => {
     setIsSaving(true);
     console.log("Saving user settings:", userSettings); // Log current settings
+
+    try {
+      localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(userSettings));
+    } catch (error) {
+      console.error("Failed to save user settings to localStorage", error);
+      // Optionally, inform the user that saving failed
+    }
+
     // Simulate API call
     setTimeout(() => {
       setIsSaving(false);
+      // Optionally, provide user feedback (e.g., a toast notification) that settings are saved
     }, 1500);
   };
 
   const handleRefreshToken = (platformId: string) => {
     console.log(`Refreshing token for platform: ${platformId}`);
     // Placeholder for actual token refresh logic
+  };
+
+  const handleAddPlatform = () => {
+    const platformName = prompt("Enter the name for the new platform:");
+    if (platformName && platformName.trim() !== "") {
+      addPlatformAccount(platformName.trim());
+    }
+  };
+
+  const handleProfilePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUserSettings(prev => ({ ...prev, profilePictureUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''; // Clear file input value
+      }
+    }
+  };
+
+  const handleUploadNewProfilePicture = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveProfilePicture = () => {
+    setUserSettings(prev => ({ ...prev, profilePictureUrl: '' }));
   };
   
   return (
@@ -99,17 +161,40 @@ const Settings: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-800 mb-4">Account Information</h3>
               
               <div className="space-y-6 max-w-2xl">
+                {/* Hidden file input for profile picture */}
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  style={{ display: 'none' }} 
+                  ref={fileInputRef} 
+                  onChange={handleProfilePictureChange} 
+                />
                 <div className="flex flex-col md:flex-row md:items-center md:space-x-4">
-                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4 md:mb-0">
-                    <User className="w-8 h-8 text-purple-600" />
-                  </div>
+                  {/* Display profile picture or placeholder */}
+                  {userSettings.profilePictureUrl ? (
+                    <img 
+                      src={userSettings.profilePictureUrl} 
+                      alt="Profile" 
+                      className="w-16 h-16 rounded-full object-cover mb-4 md:mb-0" 
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4 md:mb-0">
+                      <User className="w-8 h-8 text-purple-600" />
+                    </div>
+                  )}
                   <div>
                     <h4 className="text-sm font-medium text-gray-700">Profile Picture</h4>
                     <div className="mt-2 flex space-x-3">
-                      <button className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                      <button 
+                        onClick={handleUploadNewProfilePicture}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
                         Upload New
                       </button>
-                      <button className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                      <button 
+                        onClick={handleRemoveProfilePicture}
+                        className="px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
                         Remove
                       </button>
                     </div>
@@ -232,7 +317,10 @@ const Settings: React.FC = () => {
                   </div>
                 ))}
                 
-                <button className="w-full mt-3 py-3 border border-dashed border-gray-300 rounded-lg text-sm font-medium text-primary-600 hover:border-primary-300 hover:bg-primary-50 transition-colors">
+                <button 
+                  onClick={handleAddPlatform}
+                  className="w-full mt-3 py-3 border border-dashed border-gray-300 rounded-lg text-sm font-medium text-primary-600 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+                >
                   + Add New Platform
                 </button>
               </div>
@@ -457,7 +545,13 @@ const Settings: React.FC = () => {
                       <p className="text-xs text-gray-500">Get updates when your content reaches new milestones</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={false} onChange={() => {/* Placeholder - Can be bound to another userSettings property */}} className="sr-only peer" disabled={!userSettings.notificationsEnabled} />
+                      <input 
+                        type="checkbox" 
+                        checked={userSettings.notificationsContentPerformance} 
+                        onChange={(e) => setUserSettings({...userSettings, notificationsContentPerformance: e.target.checked})}
+                        className="sr-only peer" 
+                        disabled={!userSettings.notificationsEnabled} 
+                      />
                       <div className={`w-11 h-6 ${userSettings.notificationsEnabled ? 'bg-gray-200 peer-focus:ring-primary-300 peer-checked:bg-primary-600' : 'bg-gray-300'} peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
                     </label>
                   </div>
@@ -468,7 +562,13 @@ const Settings: React.FC = () => {
                       <p className="text-xs text-gray-500">Notify about connection issues or token expirations</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={false} onChange={() => {/* Placeholder - Can be bound to another userSettings property */}} className="sr-only peer" disabled={!userSettings.notificationsEnabled} />
+                      <input 
+                        type="checkbox" 
+                        checked={userSettings.notificationsPlatformConnections} 
+                        onChange={(e) => setUserSettings({...userSettings, notificationsPlatformConnections: e.target.checked})}
+                        className="sr-only peer" 
+                        disabled={!userSettings.notificationsEnabled} 
+                      />
                       <div className={`w-11 h-6 ${userSettings.notificationsEnabled ? 'bg-gray-200 peer-focus:ring-primary-300 peer-checked:bg-primary-600' : 'bg-gray-300'} peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
                     </label>
                   </div>
