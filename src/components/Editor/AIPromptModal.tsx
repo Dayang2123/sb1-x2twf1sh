@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, X, Copy } from 'lucide-react';
+import { generateContentFromAI, AIConfig } from '../../services/aiService';
 
 interface AIPromptModalProps {
   onClose: () => void;
@@ -16,6 +17,13 @@ const AIPromptModal: React.FC<AIPromptModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<string | null>(null);
+
+  const mockConfig: AIConfig = {
+    model: 'mock-gpt-001',
+    apiKey: 'mock-api-key-12345',
+    apiUrl: 'https://api.mock.ai/v1/generate'
+  };
 
   const predefinedPrompts = [
     {
@@ -41,26 +49,24 @@ const AIPromptModal: React.FC<AIPromptModalProps> = ({
     setPrompt(promptText);
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    setErrorState(null);
+    setGeneratedContent('');
     setIsLoading(true);
-    
-    // Simulating API call to AI service
-    setTimeout(() => {
-      let result = '';
-      
-      if (prompt.includes('conclusion')) {
-        result = `## Conclusion\n\nIn conclusion, the topics we've explored highlight the importance of staying adaptable and forward-thinking in our rapidly evolving world. By embracing new technologies while maintaining a critical perspective, we can harness their potential while mitigating risks. Remember that success comes not just from adopting innovations, but from thoughtfully integrating them into our existing systems and values.\n\nThe journey toward improvement is ongoing, and each step forward opens new possibilities. As we continue to explore and implement these ideas, we contribute to a collective knowledge base that benefits everyone. Thank you for engaging with this content, and I encourage you to apply these insights in ways that are meaningful to your specific context.`;
-      } else if (prompt.includes('introduction')) {
-        result = `## Introduction\n\nIn today's fast-paced digital landscape, staying ahead of trends and innovations is more crucial than ever. This article delves into cutting-edge developments that are reshaping how we think about technology, business, and everyday life. Whether you're a seasoned professional or simply curious about what's on the horizon, the insights shared here will provide valuable perspective on navigating our increasingly complex world.\n\nWe'll explore not only what's changing, but why these changes matter and how they might affect different aspects of society. By understanding the driving forces behind these innovations, we can better prepare for the future and perhaps even help shape it. Let's embark on this exploration together, with both excitement for the possibilities and thoughtfulness about their implications.`;
-      } else if (prompt.includes('SEO keywords')) {
-        result = `## Recommended SEO Keywords\n\n1. Digital transformation\n2. Innovation strategies\n3. Future technology trends\n4. Business adaptation\n5. Tech industry development\n6. Emerging technologies\n7. Digital disruption\n8. Technology integration\n9. Future-proofing business\n10. Technology impact analysis`;
-      } else {
-        result = `The integration of artificial intelligence into content creation represents a significant paradigm shift in how we produce and consume media. This technology offers unprecedented efficiency by automating routine aspects of content generation while allowing human creators to focus on strategic and creative elements that require nuanced understanding and emotional intelligence.\n\nFor instance, AI systems can now analyze vast datasets to identify trending topics, audience preferences, and effective content patterns. This capability enables content creators to develop more targeted materials that resonate with specific demographics. Furthermore, AI-assisted editing tools can enhance readability, suggest stylistic improvements, and ensure consistency across multiple pieces of content.\n\nHowever, it's important to recognize that AI augments rather than replaces human creativity. The most effective content strategies leverage AI as a collaborative tool, combining algorithmic efficiency with human insight, ethical judgment, and emotional connection. This balanced approach results in content that is both data-informed and authentically engaging.`;
-      }
-      
+
+    try {
+      const result = await generateContentFromAI(prompt, currentContent, mockConfig);
       setGeneratedContent(result);
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorState(error.message);
+      } else {
+        setErrorState('An unknown error occurred during AI generation.');
+      }
+      console.error("Error generating AI content:", error);
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleUseContent = () => {
@@ -124,6 +130,12 @@ const AIPromptModal: React.FC<AIPromptModalProps> = ({
                   rows={4}
                 />
               </div>
+              
+              {errorState && (
+                <div className="my-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                  <strong>Error:</strong> {errorState}
+                </div>
+              )}
 
               <div className="text-sm text-gray-500 mt-2 mb-4">
                 <p>Content context (excerpt from your current draft):</p>
@@ -148,6 +160,11 @@ const AIPromptModal: React.FC<AIPromptModalProps> = ({
                 {generatedContent}
               </div>
             </>
+          )}
+          {errorState && !generatedContent && ( // Also show error here if generation fails and there's no old content
+             <div className="my-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+               <strong>Error:</strong> {errorState}
+             </div>
           )}
         </div>
         

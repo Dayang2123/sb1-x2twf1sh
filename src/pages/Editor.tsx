@@ -46,7 +46,7 @@ const Editor: React.FC = () => {
         clearTimeout(autoSaveTimer);
       }
     };
-  }, [id, contents, setCurrentContent, navigate, autoSaveTimer]);
+  }, [id, contents, setCurrentContent, navigate]);
 
   const handleSave = useCallback((isAutoSave = false) => {
     if (!currentContent) return;
@@ -145,7 +145,7 @@ const Editor: React.FC = () => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Enter title..."
-            className="w-full text-3xl font-serif font-bold text-gray-800 border-none focus:outline-none focus:ring-0 bg-transparent"
+            className="w-full text-3xl font-bold text-gray-800"
           />
         </div>
         <div className="flex space-x-3">

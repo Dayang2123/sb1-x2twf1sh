@@ -1,13 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react'; // Added useEffect and useRef
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/useAppContext';
 import { User, Zap, BellRing, ExternalLink, Save } from 'lucide-react';
+import PlatformDetailsModal from '../components/Settings/PlatformDetailsModal'; // Import the modal
+import { PlatformAccount } from '../data/mockData'; // Import PlatformAccount for type usage
 
 const USER_SETTINGS_KEY = 'userAppSettings'; // Defined localStorage key
 
 const Settings: React.FC = () => {
-  const { platformAccounts, connectPlatformAccount, disconnectPlatformAccount, addPlatformAccount } = useAppContext(); // Added addPlatformAccount
+  const { platformAccounts, connectPlatformAccount, disconnectPlatformAccount, addPlatformAccount } = useAppContext();
   const [activeTab, setActiveTab] = useState<'account' | 'platforms' | 'ai' | 'notifications'>('account');
-  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isPlatformModalOpen, setIsPlatformModalOpen] = useState(false); // State for modal
   
   // User settings with new notification options and profile picture URL
   const defaultSettings = { 
@@ -72,10 +75,13 @@ const Settings: React.FC = () => {
   };
 
   const handleAddPlatform = () => {
-    const platformName = prompt("Enter the name for the new platform:");
-    if (platformName && platformName.trim() !== "") {
-      addPlatformAccount(platformName.trim());
-    }
+    setIsPlatformModalOpen(true); // Open the modal
+  };
+
+  const handleSavePlatform = (platformData: Partial<PlatformAccount>) => {
+    console.log("Platform data to save:", platformData);
+    addPlatformAccount(platformData); // Pass the whole object
+    setIsPlatformModalOpen(false);
   };
 
   const handleProfilePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -265,6 +271,11 @@ const Settings: React.FC = () => {
           
           {activeTab === 'platforms' && (
             <div className="animate-fade-in">
+              <PlatformDetailsModal
+                isOpen={isPlatformModalOpen}
+                onClose={() => setIsPlatformModalOpen(false)}
+                onSave={handleSavePlatform}
+              />
               <h3 className="text-lg font-medium text-gray-800 mb-4">Connect Content Platforms</h3>
               <p className="text-sm text-gray-600 mb-6">
                 Connect your accounts to publish content directly to these platforms.

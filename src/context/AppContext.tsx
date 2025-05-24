@@ -42,10 +42,10 @@ export interface AppContextType { // Exporting AppContextType
   publishContent: (contentId: string, platforms: string[]) => void;
   connectPlatformAccount: (platformId: string) => void;
   disconnectPlatformAccount: (platformId: string) => void;
-  addPlatformAccount: (platformName: string) => void; // Added for new platforms
+  addPlatformAccount: (platformData: Partial<PlatformAccount>) => void; // Updated signature
 }
 
-export const AppContext = createContext<AppContextType | undefined>(undefined); // Exporting AppContext
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -140,13 +140,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setItemInLocalStorage(LOCAL_STORAGE_KEYS.PLATFORM_ACCOUNTS, updatedAccounts);
   };
 
-  const addPlatformAccount = (platformName: string) => {
+  const addPlatformAccount = (platformData: Partial<PlatformAccount>) => {
     const newAccount: PlatformAccount = {
       id: generateId(),
-      platformName: platformName.trim(),
-      username: 'New User', // Default username
-      isConnected: false,
+      platformName: platformData.platformName || 'Unnamed Platform', // Default if not provided
+      username: platformData.username || 'New User', // Default username
+      isConnected: false, // Default
       avatarUrl: 'https://images.pexels.com/photos/326541/pexels-photo-326541.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=50', // Default avatar
+      appId: platformData.appId, // Will be undefined if not in platformData
+      appSecret: platformData.appSecret, // Will be undefined if not in platformData
     };
     const updatedAccounts = [...platformAccounts, newAccount];
     setPlatformAccounts(updatedAccounts);
@@ -167,7 +169,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     publishContent,
     connectPlatformAccount,
     disconnectPlatformAccount,
-    addPlatformAccount, // Added for new platforms
+    addPlatformAccount,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
