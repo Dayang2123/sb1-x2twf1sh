@@ -102,7 +102,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const publishContent = (contentId: string, platforms: string[]) => {
     // Simulate publishing to platforms
-    setContents(contents.map(content => {
+    const updatedContents = contents.map(content => {
       if (content.id === contentId) {
         return {
           ...content,
@@ -113,19 +113,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return content;
     });
-    setContents(newContents);
-    setItemInLocalStorage(LOCAL_STORAGE_KEYS.CONTENTS, newContents);
+    setContents(updatedContents);
+    setItemInLocalStorage(LOCAL_STORAGE_KEYS.CONTENTS, updatedContents);
   };
 
   const connectPlatformAccount = (platformId: string) => {
     console.log(`Attempting to connect platform: ${platformId}`);
-    setPlatformAccounts(prevAccounts =>
-      prevAccounts.map(account =>
-        account.id === platformId
-          ? { ...account, isConnected: true, username: 'ConnectedUser' }
-          : account
-      )
+    const updatedAccounts = platformAccounts.map(account =>
+      account.id === platformId
+        ? { ...account, isConnected: true, username: 'ConnectedUser' }
+        : account
     );
+    setPlatformAccounts(updatedAccounts);
     setItemInLocalStorage(LOCAL_STORAGE_KEYS.PLATFORM_ACCOUNTS, updatedAccounts);
   };
 
