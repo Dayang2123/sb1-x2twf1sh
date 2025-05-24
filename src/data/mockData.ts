@@ -30,6 +30,8 @@ export interface PlatformAccount {
   username: string;
   isConnected: boolean;
   avatarUrl: string;
+  appId?: string;
+  appSecret?: string;
 }
 
 interface MockData {
