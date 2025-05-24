@@ -3,11 +3,12 @@ import { NavLink } from 'react-router-dom';
 import { 
   Home, 
   FileEdit, 
-  Folder, 
-  Send, 
-  Settings, 
-  Menu, 
-  ChevronLeft 
+  Folder,
+  Send,
+  Settings,
+  Menu,
+  ChevronLeft,
+  Newspaper // Import Newspaper icon
 } from 'lucide-react';
 import { useAppContext } from '../../context/useAppContext';
 
@@ -19,6 +20,7 @@ const Sidebar: React.FC = () => {
     { path: '/editor', name: 'New Content', icon: <FileEdit className="w-5 h-5" /> },
     { path: '/drafts', name: 'Drafts', icon: <Folder className="w-5 h-5" /> },
     { path: '/published', name: 'Published', icon: <Send className="w-5 h-5" /> },
+    { path: '/news-feed', name: 'News Feed', icon: <Newspaper className="w-5 h-5" /> }, // Add News Feed link
     { path: '/settings', name: 'Settings', icon: <Settings className="w-5 h-5" /> }
   ];
 

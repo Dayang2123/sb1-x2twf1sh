@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { useAppContext } from '../context/useAppContext';
 import { createNewContent } from '../data/mockData';
 import { Save, Image, Sparkles, Send, Plus } from 'lucide-react';
@@ -12,6 +12,7 @@ import ImageGallery from '../components/Editor/ImageGallery';
 const Editor: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // Get location object
   const { contents, currentContent, setCurrentContent, saveContent } = useAppContext();
   
   const [title, setTitle] = useState('');
@@ -23,30 +24,66 @@ const Editor: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Load content if editing an existing one
+  // Load content if editing an existing one, or from newsArticle in location state
   useEffect(() => {
-    if (id) {
+    const incomingNewsArticle = location.state?.newsArticle;
+
+    if (incomingNewsArticle) {
+      const newContentFromNews = createNewContent(); // Generate a new ID etc.
+      const newsTitle = incomingNewsArticle.title || 'Untitled News Article';
+      const newsDescription = incomingNewsArticle.description || '';
+      const newsFullContent = incomingNewsArticle.content || ''; // GNews often doesn't provide full content
+
+      const editorFormattedContent = `# ${newsTitle}\n\n${newsDescription}\n\n${newsFullContent ? `## Full Article Content\n\n${newsFullContent}` : ''}`.trim();
+      
+      setTitle(newsTitle);
+      setContent(editorFormattedContent);
+      
+      const newContentData = {
+        ...newContentFromNews,
+        title: newsTitle,
+        content: editorFormattedContent,
+        status: 'draft' as 'draft', // Explicitly type status
+      };
+      setCurrentContent(newContentData);
+      
+      // Navigate to a new editor session URL for this content and clear the state
+      // This ensures if the user saves, it's a new document, and refresh doesn't re-process news.
+      navigate(`/editor/${newContentData.id}`, { state: null, replace: true });
+
+    } else if (id) {
       const foundContent = contents.find(c => c.id === id);
       if (foundContent) {
         setCurrentContent(foundContent);
         setTitle(foundContent.title);
         setContent(foundContent.content);
       } else {
-        navigate('/editor');
+        // If ID in URL but not found, navigate to new editor (or show error)
+        // For now, redirect to a new editor session without the invalid ID
+        navigate('/editor', { replace: true }); 
       }
-    } else {
+    } else if (!currentContent) { // Only create new if no currentContent (e.g. not from news or ID)
       const newContent = createNewContent();
       setCurrentContent(newContent);
       setTitle(newContent.title);
       setContent(newContent.content);
+      // Optional: navigate to /editor/${newContent.id} if you want new content to always have an ID in URL
+      // navigate(`/editor/${newContent.id}`, { replace: true });
     }
+    // If there's already a currentContent (e.g. user navigated back after starting), don't overwrite it
+    // unless there's an ID or newsArticle in state.
 
     return () => {
       if (autoSaveTimer) {
         clearTimeout(autoSaveTimer);
       }
     };
-  }, [id, contents, setCurrentContent, navigate]);
+  // Add location.state and location.pathname to dependencies to re-run if state changes.
+  // Note: `currentContent` is removed from deps to avoid loop if it's set inside this effect
+  // and also avoid re-triggering new content creation unnecessarily.
+  // The logic now ensures it only creates new/loads from news/id if appropriate.
+  }, [id, contents, setCurrentContent, navigate, location.state, location.pathname]);
+
 
   const handleSave = useCallback((isAutoSave = false) => {
     if (!currentContent) return;

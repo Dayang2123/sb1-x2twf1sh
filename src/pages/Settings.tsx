@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/useAppContext';
-import { User, Zap, BellRing, ExternalLink, Save } from 'lucide-react';
-import PlatformDetailsModal from '../components/Settings/PlatformDetailsModal'; // Import the modal
-import { PlatformAccount } from '../data/mockData'; // Import PlatformAccount for type usage
+import { User, Zap, BellRing, ExternalLink, Save, KeyRound, Server } from 'lucide-react'; // Added KeyRound, Server
+import PlatformDetailsModal from '../components/Settings/PlatformDetailsModal';
+import { PlatformAccount } from '../data/mockData';
+import { loadAIConfig, saveAIConfig, loadNewsConfig, saveNewsConfig, AIConfig, NewsConfig } from '../services/configService'; // Import config service
 
-const USER_SETTINGS_KEY = 'userAppSettings'; // Defined localStorage key
+const USER_SETTINGS_KEY = 'userAppSettings';
 
 const Settings: React.FC = () => {
   const { platformAccounts, connectPlatformAccount, disconnectPlatformAccount, addPlatformAccount } = useAppContext();
@@ -13,60 +14,100 @@ const Settings: React.FC = () => {
   const [isPlatformModalOpen, setIsPlatformModalOpen] = useState(false); // State for modal
   
   // User settings with new notification options and profile picture URL
-  const defaultSettings = { 
+  const defaultSettings = {
     name: 'John Doe',
     email: 'john.doe@example.com',
-    profilePictureUrl: '', // Added for profile picture
+    profilePictureUrl: '',
     notificationsEnabled: true,
     notificationsPublishing: true,
     notificationsContentPerformance: false,
     notificationsPlatformConnections: false,
     emailDigest: 'weekly',
     defaultPublishPlatforms: ['Medium', 'WordPress'],
-    aiSettings: {
-      model: 'gpt-4',
+    // aiSettings section might be deprecated by new AIConfig from configService
+    // For now, keep it to avoid breaking other parts of the UI if they use it,
+    // but new AI API Key/URL/Model will be handled separately.
+    aiSettings: { 
+      model: 'gpt-4', // This might become a default if no specific AIConfig is saved
       maxTokens: 2000,
       temperature: 0.7,
       savePrompts: true
     }
   };
   const [userSettings, setUserSettings] = useState(defaultSettings);
-  // The duplicated userSettings initialization was removed as it's incorrect.
-  // The defaultSettings will be used for initial state, 
-  // and useEffect will load from localStorage if available.
+
+  // States for AI API Configuration
+  const [aiApiKeyInput, setAiApiKeyInput] = useState('');
+  const [aiApiUrlInput, setAiApiUrlInput] = useState('');
+  const [aiModelNameInput, setAiModelNameInput] = useState('');
+  const [aiSaveMessage, setAiSaveMessage] = useState('');
+
+  // States for News API Configuration
+  const [newsApiKeyInput, setNewsApiKeyInput] = useState('');
+  const [newsSaveMessage, setNewsSaveMessage] = useState('');
   
-  // Load settings from localStorage on mount
+  // Load all settings from localStorage on mount
   useEffect(() => {
+    // Load User Settings
     try {
-      const storedSettings = localStorage.getItem(USER_SETTINGS_KEY);
-      if (storedSettings) {
-        const parsedSettings = JSON.parse(storedSettings);
-        // Merge with default settings to ensure all keys are present
+      const storedUserSettings = localStorage.getItem(USER_SETTINGS_KEY);
+      if (storedUserSettings) {
+        const parsedSettings = JSON.parse(storedUserSettings);
         setUserSettings(prevSettings => ({ ...prevSettings, ...parsedSettings }));
       }
     } catch (error) {
       console.error("Failed to load user settings from localStorage", error);
     }
-  }, []); // Empty dependency array means this runs once on mount
 
-  const [isSaving, setIsSaving] = useState(false);
+    // Load AI Config
+    const loadedAIConfig = loadAIConfig();
+    if (loadedAIConfig) {
+      setAiApiKeyInput(loadedAIConfig.apiKey);
+      setAiApiUrlInput(loadedAIConfig.apiUrl);
+      setAiModelNameInput(loadedAIConfig.model);
+    }
+
+    // Load News Config
+    const loadedNewsConfig = loadNewsConfig();
+    if (loadedNewsConfig) {
+      setNewsApiKeyInput(loadedNewsConfig.apiKey);
+    }
+  }, []);
+
+  const [isSaving, setIsSaving] = useState(false); // For general user settings save
   
-  const handleSaveSettings = () => {
+  // Save handler for general user settings (name, email, notifications etc.)
+  const handleSaveUserSettings = () => {
     setIsSaving(true);
-    console.log("Saving user settings:", userSettings); // Log current settings
-
     try {
       localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(userSettings));
     } catch (error) {
       console.error("Failed to save user settings to localStorage", error);
-      // Optionally, inform the user that saving failed
     }
-
-    // Simulate API call
     setTimeout(() => {
       setIsSaving(false);
-      // Optionally, provide user feedback (e.g., a toast notification) that settings are saved
+      // Add feedback for user settings save if needed
     }, 1500);
+  };
+
+  const handleSaveAIConfiguration = () => {
+    const config: AIConfig = {
+      apiKey: aiApiKeyInput,
+      apiUrl: aiApiUrlInput,
+      model: aiModelNameInput,
+    };
+    saveAIConfig(config);
+    setAiSaveMessage('AI settings saved successfully!');
+    setTimeout(() => setAiSaveMessage(''), 3000);
+  };
+
+  const handleSaveNewsConfiguration = () => {
+    const config: NewsConfig = {
+      apiKey: newsApiKeyInput,
+    };
+    saveNewsConfig(config);
+    setNewsSaveMessage('News API key saved successfully!');
+    setTimeout(() => setNewsSaveMessage(''), 3000);
   };
 
   const handleRefreshToken = (platformId: string) => {
@@ -244,7 +285,7 @@ const Settings: React.FC = () => {
                 
                 <div className="border-t border-gray-200 pt-6">
                   <button
-                    onClick={handleSaveSettings}
+                    onClick={handleSaveUserSettings}
                     disabled={isSaving}
                     className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
                       isSaving
@@ -260,7 +301,7 @@ const Settings: React.FC = () => {
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        Save Changes
+                        Save User Changes 
                       </>
                     )}
                   </button>
@@ -369,7 +410,7 @@ const Settings: React.FC = () => {
                   
                   <div className="border-t border-gray-200 pt-6 mt-6">
                     <button
-                      onClick={handleSaveSettings}
+                      onClick={handleSaveUserSettings}
                       disabled={isSaving}
                       className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
                         isSaving
@@ -385,7 +426,7 @@ const Settings: React.FC = () => {
                       ) : (
                         <>
                           <Save className="w-4 h-4 mr-2" />
-                          Save Changes
+                          Save Publishing Changes
                         </>
                       )}
                     </button>
@@ -397,97 +438,132 @@ const Settings: React.FC = () => {
           
           {activeTab === 'ai' && (
             <div className="animate-fade-in">
-              <h3 className="text-lg font-medium text-gray-800 mb-4">AI Content Generation Settings</h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Configure how the AI generates content for your articles.
-              </p>
-              
-              <div className="space-y-6 max-w-2xl">
-                <div>
-                  <label htmlFor="aiModel" className="block text-sm font-medium text-gray-700 mb-1">
-                    AI Model
-                  </label>
-                  <select
-                    id="aiModel"
-                    value={userSettings.aiSettings.model}
-                    onChange={(e) => setUserSettings({
-                      ...userSettings, 
-                      aiSettings: {...userSettings.aiSettings, model: e.target.value}
-                    })}
-                    className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="gpt-4">GPT-4 (Highest quality, slower)</option>
-                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Fast, good quality)</option>
-                    <option value="claude-2">Claude 2 (Alternative model)</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label htmlFor="maxTokens" className="block text-sm font-medium text-gray-700 mb-1">
-                    Maximum Length (tokens)
-                  </label>
-                  <input
-                    type="range"
-                    id="maxTokens"
-                    min="500"
-                    max="4000"
-                    step="100"
-                    value={userSettings.aiSettings.maxTokens}
-                    onChange={(e) => setUserSettings({
-                      ...userSettings, 
-                      aiSettings: {...userSettings.aiSettings, maxTokens: parseInt(e.target.value)}
-                    })}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Short (500)</span>
-                    <span>Current: {userSettings.aiSettings.maxTokens}</span>
-                    <span>Long (4000)</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <label htmlFor="temperature" className="block text-sm font-medium text-gray-700 mb-1">
-                    Creativity Level
-                  </label>
-                  <input
-                    type="range"
-                    id="temperature"
-                    min="0.1"
-                    max="1.0"
-                    step="0.1"
-                    value={userSettings.aiSettings.temperature}
-                    onChange={(e) => setUserSettings({
-                      ...userSettings, 
-                      aiSettings: {...userSettings.aiSettings, temperature: parseFloat(e.target.value)}
-                    })}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Conservative (0.1)</span>
-                    <span>Current: {userSettings.aiSettings.temperature}</span>
-                    <span>Creative (1.0)</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="flex items-center cursor-pointer">
+              {/* AI Service API Configuration */}
+              <section className="mb-10">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2 flex items-center">
+                  <Server className="w-5 h-5 mr-2 text-blue-600" /> AI Service Configuration
+                </h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  Set up your AI provider details. These are stored locally in your browser.
+                </p>
+                <div className="space-y-6 max-w-2xl">
+                  <div>
+                    <label htmlFor="aiApiKey" className="block text-sm font-medium text-gray-700 mb-1">
+                      AI API Key
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={userSettings.aiSettings.savePrompts}
+                      type="password"
+                      id="aiApiKey"
+                      value={aiApiKeyInput}
+                      onChange={(e) => setAiApiKeyInput(e.target.value)}
+                      placeholder="Enter your AI API Key"
+                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="aiApiUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                      AI API URL
+                    </label>
+                    <input
+                      type="text"
+                      id="aiApiUrl"
+                      value={aiApiUrlInput}
+                      onChange={(e) => setAiApiUrlInput(e.target.value)}
+                      placeholder="e.g., https://api.openai.com/v1/chat/completions"
+                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="aiModelName" className="block text-sm font-medium text-gray-700 mb-1">
+                      AI Model Name
+                    </label>
+                    <input
+                      type="text"
+                      id="aiModelName"
+                      value={aiModelNameInput}
+                      onChange={(e) => setAiModelNameInput(e.target.value)}
+                      placeholder="e.g., gpt-3.5-turbo"
+                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={handleSaveAIConfiguration}
+                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save AI Settings
+                    </button>
+                    {aiSaveMessage && <p className="text-sm text-green-600">{aiSaveMessage}</p>}
+                  </div>
+                </div>
+              </section>
+
+              {/* News Service API Configuration */}
+              <section className="border-t border-gray-200 pt-8 mt-8">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2 flex items-center">
+                  <KeyRound className="w-5 h-5 mr-2 text-orange-600" /> News Service API Key (GNews)
+                </h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  Set up your GNews API key. This is stored locally in your browser.
+                </p>
+                <div className="space-y-6 max-w-2xl">
+                  <div>
+                    <label htmlFor="newsApiKey" className="block text-sm font-medium text-gray-700 mb-1">
+                      GNews API Key
+                    </label>
+                    <input
+                      type="password"
+                      id="newsApiKey"
+                      value={newsApiKeyInput}
+                      onChange={(e) => setNewsApiKeyInput(e.target.value)}
+                      placeholder="Enter your GNews API Key"
+                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                  <button
+                    onClick={handleSaveNewsConfiguration}
+                    className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-md text-sm hover:bg-orange-700 transition-colors"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save News API Key
+                  </button>
+                  {newsSaveMessage && <p className="text-sm text-green-600">{newsSaveMessage}</p>}
+                  </div>
+                </div>
+              </section>
+
+              {/* Legacy AI Content Generation Settings (from original file) - can be removed or integrated if needed */}
+              <section className="border-t border-gray-200 pt-8 mt-8 opacity-50">
+                <h3 className="text-lg font-medium text-gray-800 mb-4">Legacy AI Content Settings (Review/Integrate)</h3>
+                 <p className="text-sm text-gray-600 mb-6">
+                  These are older settings. Review if they need to be integrated with the new API configurations or removed.
+                </p>
+                <div className="space-y-6 max-w-2xl">
+                  <div>
+                    <label htmlFor="legacyAiModel" className="block text-sm font-medium text-gray-700 mb-1">
+                      AI Model (Legacy)
+                    </label>
+                    <select
+                      id="legacyAiModel"
+                      value={userSettings.aiSettings.model}
                       onChange={(e) => setUserSettings({
                         ...userSettings, 
-                        aiSettings: {...userSettings.aiSettings, savePrompts: e.target.checked}
+                        aiSettings: {...userSettings.aiSettings, model: e.target.value}
                       })}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Save prompts history for future use</span>
-                  </label>
+                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
+                      disabled 
+                    >
+                      <option value="gpt-4">GPT-4</option>
+                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    </select>
+                  </div>
+                   {/* Other legacy settings fields could be listed here similarly, marked as disabled */}
                 </div>
-                
-                <div className="border-t border-gray-200 pt-6">
+                <div className="border-t border-gray-200 pt-6 mt-6">
                   <button
-                    onClick={handleSaveSettings}
+                    onClick={handleSaveUserSettings} // Note: This saves the general userSettings object
                     disabled={isSaving}
                     className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
                       isSaving
@@ -503,12 +579,12 @@ const Settings: React.FC = () => {
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        Save Changes
+                        Save Legacy Settings
                       </>
                     )}
                   </button>
                 </div>
-              </div>
+              </section>
             </div>
           )}
           
@@ -605,7 +681,7 @@ const Settings: React.FC = () => {
                 
                 <div className="border-t border-gray-200 pt-6">
                   <button
-                    onClick={handleSaveSettings}
+                    onClick={handleSaveUserSettings}
                     disabled={isSaving}
                     className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
                       isSaving
@@ -621,7 +697,7 @@ const Settings: React.FC = () => {
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        Save Changes
+                        Save Notification Changes
                       </>
                     )}
                   </button>

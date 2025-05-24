@@ -6,6 +6,7 @@ import Editor from './pages/Editor';
 import Drafts from './pages/Drafts';
 import Published from './pages/Published';
 import Settings from './pages/Settings';
+import NewsFeed from './pages/NewsFeed'; // Import the NewsFeed component
 import { AppProvider } from './context/AppContext';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
             <Route path="/drafts" element={<Drafts />} />
             <Route path="/published" element={<Published />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/news-feed" element={<NewsFeed />} /> {/* Add NewsFeed route */}
           </Routes>
         </Layout>
       </Router>

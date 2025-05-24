@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, X, Copy } from 'lucide-react';
 import { generateContentFromAI, AIConfig } from '../../services/aiService';
+import { loadAIConfig } from '../../services/configService'; // Import loadAIConfig
 
 interface AIPromptModalProps {
   onClose: () => void;
@@ -19,11 +20,7 @@ const AIPromptModal: React.FC<AIPromptModalProps> = ({
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
   const [errorState, setErrorState] = useState<string | null>(null);
 
-  const mockConfig: AIConfig = {
-    model: 'mock-gpt-001',
-    apiKey: 'mock-api-key-12345',
-    apiUrl: 'https://api.mock.ai/v1/generate'
-  };
+  // mockConfig is removed
 
   const predefinedPrompts = [
     {
@@ -55,7 +52,26 @@ const AIPromptModal: React.FC<AIPromptModalProps> = ({
     setIsLoading(true);
 
     try {
-      const result = await generateContentFromAI(prompt, currentContent, mockConfig);
+      let effectiveConfig = loadAIConfig();
+      if (!effectiveConfig) {
+        // Fallback to default/empty config if nothing is saved
+        // aiService.ts should handle errors if critical fields like apiUrl are missing
+        effectiveConfig = { 
+          apiKey: '', 
+          apiUrl: '', 
+          model: 'default-model' // Provide a default model or let aiService handle it
+        };
+        console.warn("AIPromptModal: AI config not found in localStorage, using fallback. Please configure in Settings.");
+      }
+      
+      // Ensure all required fields are present, even if empty, to match AIConfig interface
+      const configForService: AIConfig = {
+        apiKey: effectiveConfig.apiKey || '',
+        apiUrl: effectiveConfig.apiUrl || '',
+        model: effectiveConfig.model || 'default-model', // Ensure model is not empty
+      };
+
+      const result = await generateContentFromAI(prompt, currentContent, configForService);
       setGeneratedContent(result);
     } catch (error) {
       if (error instanceof Error) {
