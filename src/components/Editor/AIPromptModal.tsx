@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, X, Copy } from 'lucide-react';
 import { generateContentFromAI, AIConfig } from '../../services/aiService';
-import { loadAIConfig } from '../../services/configService'; // Import loadAIConfig
+import { loadActiveAIConfig, AIConfigEntry } from '../../services/configService'; // Import new service functions
 
 interface AIPromptModalProps {
   onClose: () => void;
@@ -52,30 +52,31 @@ const AIPromptModal: React.FC<AIPromptModalProps> = ({
     setIsLoading(true);
 
     try {
-      let effectiveConfig = loadAIConfig();
-      if (!effectiveConfig) {
-        // Fallback to default/empty config if nothing is saved
-        // aiService.ts should handle errors if critical fields like apiUrl are missing
-        effectiveConfig = { 
-          apiKey: '', 
-          apiUrl: '', 
-          model: 'default-model' // Provide a default model or let aiService handle it
-        };
-        console.warn("AIPromptModal: AI config not found in localStorage, using fallback. Please configure in Settings.");
+      const activeConfig: AIConfigEntry | null = loadActiveAIConfig(); // Synchronous call
+
+      if (!activeConfig) {
+        setErrorState("No active AI configuration found. Please go to Settings to select or add one.");
+        setIsLoading(false);
+        return;
       }
-      
-      // Ensure all required fields are present, even if empty, to match AIConfig interface
+
+      if (!activeConfig.apiKey || !activeConfig.apiUrl || !activeConfig.model) {
+        setErrorState("The active AI configuration is incomplete. Please check API Key, API URL, and Model in Settings.");
+        setIsLoading(false);
+        return;
+      }
+
       const configForService: AIConfig = {
-        apiKey: effectiveConfig.apiKey || '',
-        apiUrl: effectiveConfig.apiUrl || '',
-        model: effectiveConfig.model || 'default-model', // Ensure model is not empty
+        apiKey: activeConfig.apiKey,
+        apiUrl: activeConfig.apiUrl,
+        model: activeConfig.model,
       };
 
       const result = await generateContentFromAI(prompt, currentContent, configForService);
       setGeneratedContent(result);
     } catch (error) {
       if (error instanceof Error) {
-        setErrorState(error.message);
+        setErrorState(error.message); // This will now include errors from generateContentFromAI
       } else {
         setErrorState('An unknown error occurred during AI generation.');
       }

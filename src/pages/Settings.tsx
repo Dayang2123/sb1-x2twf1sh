@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppContext } from '../context/useAppContext';
-import { User, Zap, BellRing, ExternalLink, Save, KeyRound, Server } from 'lucide-react'; // Added KeyRound, Server
+import { User, Zap, BellRing, ExternalLink, Save, KeyRound, Server, Settings as SettingsIcon, Edit } from 'lucide-react'; // Added KeyRound, Server, SettingsIcon, Edit
 import PlatformDetailsModal from '../components/Settings/PlatformDetailsModal';
 import { PlatformAccount } from '../data/mockData';
-import { loadAIConfig, saveAIConfig, loadNewsConfig, saveNewsConfig, AIConfig, NewsConfig } from '../services/configService'; // Import config service
+import { loadNewsConfig, saveNewsConfig, NewsConfig, loadActiveAIConfig, AIConfigEntry } from '../services/configService'; // Import config service
+import AIConfigModal from '../components/Settings/AIConfigModal'; // Import the new AIConfigModal
 
 const USER_SETTINGS_KEY = 'userAppSettings';
 
@@ -36,11 +37,9 @@ const Settings: React.FC = () => {
   };
   const [userSettings, setUserSettings] = useState(defaultSettings);
 
-  // States for AI API Configuration
-  const [aiApiKeyInput, setAiApiKeyInput] = useState('');
-  const [aiApiUrlInput, setAiApiUrlInput] = useState('');
-  const [aiModelNameInput, setAiModelNameInput] = useState('');
-  const [aiSaveMessage, setAiSaveMessage] = useState('');
+  // States for AI Configuration Modal and Active Config
+  const [isAIConfigModalOpen, setIsAIConfigModalOpen] = useState(false);
+  const [activeAIConfig, setActiveAIConfig] = useState<AIConfigEntry | null>(null);
 
   // States for News API Configuration
   const [newsApiKeyInput, setNewsApiKeyInput] = useState('');
@@ -59,20 +58,31 @@ const Settings: React.FC = () => {
       console.error("Failed to load user settings from localStorage", error);
     }
 
-    // Load AI Config
-    const loadedAIConfig = loadAIConfig();
-    if (loadedAIConfig) {
-      setAiApiKeyInput(loadedAIConfig.apiKey);
-      setAiApiUrlInput(loadedAIConfig.apiUrl);
-      setAiModelNameInput(loadedAIConfig.model);
-    }
-
     // Load News Config
     const loadedNewsConfig = loadNewsConfig();
     if (loadedNewsConfig) {
       setNewsApiKeyInput(loadedNewsConfig.apiKey);
     }
+    // AI Config is loaded via fetchActiveAIConfig
   }, []);
+
+  const fetchActiveAIConfig = useCallback(async () => {
+    const config = loadActiveAIConfig(); // loadActiveAIConfig is synchronous
+    setActiveAIConfig(config);
+  }, []);
+
+  useEffect(() => {
+    fetchActiveAIConfig();
+  }, [fetchActiveAIConfig]);
+
+  const handleOpenAIConfigModal = () => {
+    setIsAIConfigModalOpen(true);
+  };
+
+  const handleCloseAIConfigModal = () => {
+    setIsAIConfigModalOpen(false);
+    fetchActiveAIConfig(); // Refresh active config display
+  };
 
   const [isSaving, setIsSaving] = useState(false); // For general user settings save
   
@@ -88,17 +98,6 @@ const Settings: React.FC = () => {
       setIsSaving(false);
       // Add feedback for user settings save if needed
     }, 1500);
-  };
-
-  const handleSaveAIConfiguration = () => {
-    const config: AIConfig = {
-      apiKey: aiApiKeyInput,
-      apiUrl: aiApiUrlInput,
-      model: aiModelNameInput,
-    };
-    saveAIConfig(config);
-    setAiSaveMessage('AI settings saved successfully!');
-    setTimeout(() => setAiSaveMessage(''), 3000);
   };
 
   const handleSaveNewsConfiguration = () => {
@@ -443,59 +442,30 @@ const Settings: React.FC = () => {
                 <h3 className="text-xl font-semibold text-gray-800 mb-2 flex items-center">
                   <Server className="w-5 h-5 mr-2 text-blue-600" /> AI Service Configuration
                 </h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Set up your AI provider details. These are stored locally in your browser.
+                <p className="text-sm text-gray-600 mb-4">
+                  Manage your AI service providers and select the active configuration for generating content.
                 </p>
-                <div className="space-y-6 max-w-2xl">
-                  <div>
-                    <label htmlFor="aiApiKey" className="block text-sm font-medium text-gray-700 mb-1">
-                      AI API Key
-                    </label>
-                    <input
-                      type="password"
-                      id="aiApiKey"
-                      value={aiApiKeyInput}
-                      onChange={(e) => setAiApiKeyInput(e.target.value)}
-                      placeholder="Enter your AI API Key"
-                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="aiApiUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                      AI API URL
-                    </label>
-                    <input
-                      type="text"
-                      id="aiApiUrl"
-                      value={aiApiUrlInput}
-                      onChange={(e) => setAiApiUrlInput(e.target.value)}
-                      placeholder="e.g., https://api.openai.com/v1/chat/completions"
-                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="aiModelName" className="block text-sm font-medium text-gray-700 mb-1">
-                      AI Model Name
-                    </label>
-                    <input
-                      type="text"
-                      id="aiModelName"
-                      value={aiModelNameInput}
-                      onChange={(e) => setAiModelNameInput(e.target.value)}
-                      placeholder="e.g., gpt-3.5-turbo"
-                      className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={handleSaveAIConfiguration}
-                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Save AI Settings
-                    </button>
-                    {aiSaveMessage && <p className="text-sm text-green-600">{aiSaveMessage}</p>}
-                  </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3 max-w-2xl">
+                  {activeAIConfig ? (
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        Active Profile: <span className="font-semibold text-blue-700">{activeAIConfig.name}</span>
+                      </p>
+                      <p className="text-xs text-gray-500">Model: {activeAIConfig.model}</p>
+                      <p className="text-xs text-gray-500">API URL: {activeAIConfig.apiUrl}</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      No active AI configuration selected. Please add or select one.
+                    </p>
+                  )}
+                  <button
+                    onClick={handleOpenAIConfigModal}
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors shadow-sm"
+                  >
+                    <Edit size={16} className="mr-2" />
+                    Manage AI Configurations
+                  </button>
                 </div>
               </section>
 
@@ -535,10 +505,13 @@ const Settings: React.FC = () => {
               </section>
 
               {/* Legacy AI Content Generation Settings (from original file) - can be removed or integrated if needed */}
-              <section className="border-t border-gray-200 pt-8 mt-8 opacity-50">
-                <h3 className="text-lg font-medium text-gray-800 mb-4">Legacy AI Content Settings (Review/Integrate)</h3>
-                 <p className="text-sm text-gray-600 mb-6">
-                  These are older settings. Review if they need to be integrated with the new API configurations or removed.
+              <section className="border-t border-gray-200 pt-8 mt-8 opacity-60"> {/* Slightly reduced opacity for visual distinction */}
+                <h3 className="text-lg font-semibold text-gray-700 mb-2 flex items-center"> {/* Adjusted font weight and color */}
+                  <SettingsIcon className="w-5 h-5 mr-2 text-gray-500" /> AI Content Generation Defaults
+                </h3>
+                 <p className="text-sm text-gray-500 mb-6"> {/* Adjusted text color */}
+                  These settings define default parameters for AI content generation tasks (e.g., tone, length).
+                  They are separate from the AI Service Configuration above.
                 </p>
                 <div className="space-y-6 max-w-2xl">
                   <div>
@@ -579,7 +552,7 @@ const Settings: React.FC = () => {
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        Save Legacy Settings
+                        Save Content Defaults
                       </>
                     )}
                   </button>
@@ -707,6 +680,11 @@ const Settings: React.FC = () => {
           )}
         </div>
       </div>
+
+      <AIConfigModal
+        isOpen={isAIConfigModalOpen}
+        onClose={handleCloseAIConfigModal}
+      />
     </div>
   );
 };
