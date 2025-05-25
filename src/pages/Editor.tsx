@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'; // Added useRef
 import { useParams, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { useAppContext } from '../context/useAppContext';
 import { createNewContent } from '../data/mockData';
@@ -22,7 +22,7 @@ const Editor: React.FC = () => {
   const [isImageGalleryOpen, setIsImageGalleryOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'write' | 'preview'>('write');
   const [isSaving, setIsSaving] = useState(false);
-  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Added autoSaveTimeoutRef
 
   // Load content if editing an existing one, or from newsArticle in location state
   useEffect(() => {
@@ -73,11 +73,8 @@ const Editor: React.FC = () => {
     // If there's already a currentContent (e.g. user navigated back after starting), don't overwrite it
     // unless there's an ID or newsArticle in state.
 
-    return () => {
-      if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer);
-      }
-    };
+    // Cleanup for this effect is removed as autoSaveTimeoutRef is handled by its own effect.
+    return () => {}; 
   // Add location.state and location.pathname to dependencies to re-run if state changes.
   // Note: `currentContent` is removed from deps to avoid loop if it's set inside this effect
   // and also avoid re-triggering new content creation unnecessarily.
@@ -131,24 +128,26 @@ const Editor: React.FC = () => {
 
   // Auto-save functionality
   useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
-    if (autoSaveTimer) { // Clear previous timer if it exists from setAutoSaveTimer call
-        clearTimeout(autoSaveTimer);
+    // Clear any existing timeout stored in the ref
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
     }
 
+    // Check if there are changes to auto-save
     if (currentContent && (title !== currentContent.title || content !== currentContent.content)) {
-      timer = setTimeout(() => {
-        handleSave(true);
-      }, 5000);
-      setAutoSaveTimer(timer); // Store the new timer
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        console.log('Auto-saving...'); // Optional: for debugging
+        handleSave(true); // Pass isAutoSave = true
+      }, 5000); // 5 seconds delay
     }
 
+    // Cleanup function: clear the timeout when the component unmounts or dependencies change
     return () => {
-      if (timer) { // Use the locally scoped timer for cleanup
-        clearTimeout(timer);
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [currentContent, title, content, handleSave, autoSaveTimer, setAutoSaveTimer]);
+  }, [title, content, currentContent, handleSave]); // Dependencies: only re-run if these change
 
   const addImageToContent = (imageUrl: string, alt: string) => {
     const imageMarkdown = `\n\n![${alt}](${imageUrl})\n\n`;
