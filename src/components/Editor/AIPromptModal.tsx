@@ -87,7 +87,37 @@ const AIPromptModal: React.FC<AIPromptModalProps> = ({
   };
 
   const handleUseContent = () => {
-    onGenerate(generatedContent);
+    const activeConfig = loadActiveAIConfig(); // Re-fetch config
+
+    if (!activeConfig) {
+      setErrorState("No active AI configuration found. Please go to Settings to select or add one.");
+      console.warn("handleUseContent: No active AI config found upon re-check.");
+      return; 
+    }
+
+    if (!activeConfig.apiKey || !activeConfig.apiUrl || !activeConfig.model) {
+      setErrorState("The active AI configuration is incomplete. Please check API Key, API URL, and Model in Settings.");
+      console.warn("handleUseContent: AI config is incomplete upon re-check.");
+      return; 
+    }
+
+    // If config is valid at the moment of clicking "Use this content":
+    // Now, check if the `generatedContent` is available and if the generation process itself was successful (i.e., `errorState` is not set from that).
+    if (generatedContent && !errorState) { // `errorState` here refers to the state after the generation attempt.
+      onGenerate(generatedContent);
+    } else {
+      // Config is okay now, but content generation may have failed previously or content is empty.
+      if (!generatedContent) {
+          setErrorState("No content available to use. Please generate content first.");
+          console.warn("handleUseContent: Config OK, but no generatedContent.");
+      } else if (errorState) {
+          // If errorState is already set from a failed generation, it remains.
+          // We might want to ensure the error message reflects that it's from generation,
+          // e.g. "Cannot use content due to previous generation error: [errorState]"
+          // For now, keeping the existing errorState is correct.
+          console.warn("handleUseContent: Config OK, but errorState from generation exists.", { errorState });
+      }
+    }
   };
 
   const handleCopyContent = () => {
