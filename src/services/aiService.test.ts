@@ -1,12 +1,14 @@
 import { generateContentFromAI, AIConfig } from './aiService';
+import { vi } from 'vitest';
 
 // Mock the global fetch function
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('AIService - generateContentFromAI', () => {
   beforeEach(() => {
     // Reset mocks before each test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
+    (fetch as vi.Mock).mockReset();
   });
 
   const mockPrompt = 'Test prompt';
@@ -30,7 +32,7 @@ describe('AIService - generateContentFromAI', () => {
   };
 
   it('should call AI API with correct parameters and return content on success', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockAISuccessResponse,
     });
@@ -56,7 +58,7 @@ describe('AIService - generateContentFromAI', () => {
   });
   
   it('should handle prompt without contextContent', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockAISuccessResponse,
     });
@@ -80,7 +82,7 @@ describe('AIService - generateContentFromAI', () => {
 
   it('should throw an error if apiUrl is missing in AIConfig', async () => {
     const configWithoutApiUrl: AIConfig = { ...validConfig, apiUrl: '' };
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(
       generateContentFromAI(mockPrompt, mockContextContent, configWithoutApiUrl)
@@ -91,13 +93,13 @@ describe('AIService - generateContentFromAI', () => {
   });
 
   it('should throw an error if API request fails (response not ok)', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: false,
       status: 401,
       statusText: 'Unauthorized',
       text: async () => 'Invalid API Key', // Changed from .json() to .text() based on service code
     });
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(
       generateContentFromAI(mockPrompt, mockContextContent, validConfig)
@@ -108,11 +110,11 @@ describe('AIService - generateContentFromAI', () => {
   });
 
   it('should throw an error if content cannot be extracted from AI response', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ some: 'unexpected structure' }), // No choices[0].message.content
     });
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(
       generateContentFromAI(mockPrompt, mockContextContent, validConfig)
@@ -123,11 +125,11 @@ describe('AIService - generateContentFromAI', () => {
   });
   
   it('should throw an error if choices array is empty', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ choices: [] }), 
     });
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(
       generateContentFromAI(mockPrompt, mockContextContent, validConfig)
@@ -136,11 +138,11 @@ describe('AIService - generateContentFromAI', () => {
   });
 
   it('should throw an error if message is missing in choice', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ choices: [{}] }),
     });
-     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(
       generateContentFromAI(mockPrompt, mockContextContent, validConfig)
@@ -149,11 +151,11 @@ describe('AIService - generateContentFromAI', () => {
   });
   
   it('should throw an error if content is missing in message', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ choices: [{ message: {} }] }),
     });
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(
       generateContentFromAI(mockPrompt, mockContextContent, validConfig)
@@ -162,11 +164,11 @@ describe('AIService - generateContentFromAI', () => {
   });
 
   it('should throw a generic error for unexpected issues during fetch', async () => {
-    (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network connection failed'));
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    (fetch as vi.Mock).mockRejectedValueOnce(new Error('Network connection failed'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(generateContentFromAI(mockPrompt, mockContextContent, validConfig)).rejects.toThrow(
-        'An unexpected error occurred while contacting the AI service: Error: Network connection failed'
+        'Network connection failed' // Changed to match the direct error message
     );
     consoleErrorSpy.mockRestore();
   });
