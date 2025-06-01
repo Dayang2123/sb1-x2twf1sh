@@ -8,7 +8,7 @@ const LOCAL_STORAGE_KEYS = {
 };
 
 // Helper functions for localStorage
-const getItemFromLocalStorage = <T>(key: string, defaultValue: T): T => {
+const getItemFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
   try {
     const storedValue = localStorage.getItem(key);
     if (storedValue) {
@@ -20,7 +20,7 @@ const getItemFromLocalStorage = <T>(key: string, defaultValue: T): T => {
   return defaultValue;
 };
 
-const setItemInLocalStorage = <T>(key: string, value: T): void => {
+const setItemInLocalStorage = <T,>(key: string, value: T): void => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
