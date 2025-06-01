@@ -101,7 +101,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const publishContent = (contentId: string, platforms: string[]) => {
-    // Simulate publishing to platforms
     const updatedContents = contents.map(content => {
       if (content.id === contentId) {
         return {
@@ -118,7 +117,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const connectPlatformAccount = (platformId: string) => {
-    console.log(`Attempting to connect platform: ${platformId}`);
     const updatedAccounts = platformAccounts.map(account =>
       account.id === platformId
         ? { ...account, isConnected: true, username: 'ConnectedUser' }
@@ -129,7 +127,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const disconnectPlatformAccount = (platformId: string) => {
-    console.log(`Attempting to disconnect platform: ${platformId}`);
     const updatedAccounts = platformAccounts.map(account => // Corrected to use updatedAccounts
       account.id === platformId
         ? { ...account, isConnected: false, username: 'User' }

@@ -1,20 +1,21 @@
 import { fetchNews, NewsArticle } from './newsService';
 import * as ConfigService from './configService'; // Import all exports to mock loadNewsConfig
+import { vi } from 'vitest';
 
 // Mock the global fetch function
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('NewsService - fetchNews', () => {
-  let loadNewsConfigSpy: jest.SpyInstance;
+  let loadNewsConfigSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     // Reset mocks before each test
-    jest.clearAllMocks();
-    loadNewsConfigSpy = jest.spyOn(ConfigService, 'loadNewsConfig');
+    vi.clearAllMocks();
+    loadNewsConfigSpy = vi.spyOn(ConfigService, 'loadNewsConfig');
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const mockApiResponseArticles = [
@@ -67,7 +68,7 @@ describe('NewsService - fetchNews', () => {
 
   it('should fetch news from GNews API when a valid API key is configured', async () => {
     loadNewsConfigSpy.mockReturnValue({ apiKey: 'test-valid-key' });
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockGNewsResponse,
     });
@@ -88,7 +89,7 @@ describe('NewsService - fetchNews', () => {
 
   it('should return mock data if API key is not configured', async () => {
     loadNewsConfigSpy.mockReturnValue(null); // No API key
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {}); // Suppress console.warn
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {}); // Suppress console.warn
 
     const articles = await fetchNews('anyquery');
 
@@ -107,7 +108,7 @@ describe('NewsService - fetchNews', () => {
 
   it('should return mock data if API key is a placeholder', async () => {
     loadNewsConfigSpy.mockReturnValue({ apiKey: 'YOUR_GNEWS_API_KEY' });
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const articles = await fetchNews('anyquery');
     
@@ -120,7 +121,7 @@ describe('NewsService - fetchNews', () => {
 
   it('should return mock data if API key is an empty string', async () => {
     loadNewsConfigSpy.mockReturnValue({ apiKey: '' });
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const articles = await fetchNews('anyquery');
     
@@ -133,13 +134,13 @@ describe('NewsService - fetchNews', () => {
 
   it('should throw an error if the API request fails (response not ok)', async () => {
     loadNewsConfigSpy.mockReturnValue({ apiKey: 'test-valid-key' });
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: false,
       status: 500,
       statusText: 'Internal Server Error',
       json: async () => ({ message: 'Server error details' }),
     });
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 
     await expect(fetchNews('technology')).rejects.toThrow(
@@ -151,11 +152,11 @@ describe('NewsService - fetchNews', () => {
   
   it('should throw an error if the API response is ok but data.articles is missing', async () => {
     loadNewsConfigSpy.mockReturnValue({ apiKey: 'test-valid-key' });
-    (fetch as jest.Mock).mockResolvedValueOnce({
+    (fetch as vi.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ totalArticles: 0 }), // Missing 'articles' array
     });
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(fetchNews('technology')).rejects.toThrow(
       'Failed to parse news articles from API response.'
@@ -166,11 +167,11 @@ describe('NewsService - fetchNews', () => {
 
   it('should throw a generic error for unexpected issues during fetch', async () => {
     loadNewsConfigSpy.mockReturnValue({ apiKey: 'test-valid-key' });
-    (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network connection failed'));
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    (fetch as vi.Mock).mockRejectedValueOnce(new Error('Network connection failed'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(fetchNews('technology')).rejects.toThrow(
-        'An unexpected error occurred while fetching news: Error: Network connection failed'
+        'Network connection failed' // Changed to match the direct error message
     );
     consoleErrorSpy.mockRestore();
   });

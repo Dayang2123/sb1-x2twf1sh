@@ -56,10 +56,13 @@ const Editor: React.FC = () => {
       if (foundContent) {
         setCurrentContent(foundContent);
         setTitle(foundContent.title);
+        setCurrentContent(foundContent);
+        setTitle(foundContent.title);
         setContent(foundContent.content);
       } else {
         // If ID in URL but not found, navigate to new editor (or show error)
         // For now, redirect to a new editor session without the invalid ID
+        setCurrentContent(null); // <--- ADD THIS LINE
         navigate('/editor', { replace: true }); 
       }
     } else if (!currentContent) { // Only create new if no currentContent (e.g. not from news or ID)
@@ -136,7 +139,6 @@ const Editor: React.FC = () => {
     // Check if there are changes to auto-save
     if (currentContent && (title !== currentContent.title || content !== currentContent.content)) {
       autoSaveTimeoutRef.current = setTimeout(() => {
-        console.log('Auto-saving...'); // Optional: for debugging
         handleSave(true); // Pass isAutoSave = true
       }, 5000); // 5 seconds delay
     }
